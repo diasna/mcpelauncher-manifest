@@ -5,3 +5,4 @@ cmake-build-release
 cmake-build-release-clang
 .idea
 surface-touchfix/touch-probe-last.json
+perf-log.csv

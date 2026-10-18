@@ -16,6 +16,7 @@ Everything here was worked out on 2026-10-18. Starting point: Flatpak launcher `
    surface-touchfix/build.sh        # builds in a fedora:43 container, ~15-30 min the first time
    surface-touchfix/install.sh      # run script, Xbox login wrapper, dock shortcut
    sudo surface-touchfix/iptsd-tune.sh
+   sudo surface-touchfix/thermal-tune.sh   # prevents the overheating slowdown, see below
    ```
 5. Launch **Minecraft (touch fix)** from the dock. Output of the last launch goes to `~/.local/opt/mcpelauncher-touchfix/last-run.log`.
 
@@ -50,7 +51,18 @@ Other things the patched build needs, all handled by the scripts:
 | `run.sh` | Starts the game using the Flatpak's newest installed version, its data and its profile mods |
 | `mcpelauncher-webview` | Xbox Live login window, taken from the Flatpak |
 | `iptsd-tune.sh` | Raises iptsd's movement and size limits (backup in `/etc/iptsd.conf.bak`) |
+| `thermal-tune.sh` | Switches tuned to `balanced` and caps CPU power at 15 W (25 W boost) via a udev rule (`/etc/udev/rules.d/90-surface-power-limits.rules`) |
+| `perf-log.sh` | While the game runs, logs memory, temperature, CPU/GPU clocks and throttling every 30 s to `perf-log.csv` |
 | `touch-probe.py` | Records touches from the iptsd virtual touchscreen and reports taps, broken swipes, speed and jumps; saves raw data next to itself as `touch-probe-last.json` |
+
+## Game slows down over time (overheating)
+
+Measured 2026-10-18 with `perf-log.sh` over 17 minutes of play:
+- **Memory was not the problem.** The game used about 1.45-1.6 GB after loading the world, growing slowly as new map areas loaded.
+- **The chip overheated and stalled.** With tuned's `throughput-performance` profile (EPP `performance`, 25 W sustained power limit, the i5-1035G4's cTDP-up maximum; the chip is rated 15 W), the CPU reached 82-89 C within about 8 minutes. Then the CPU was clamped to **200 MHz** and the GPU to **100 MHz** for 2-3 minutes until it cooled to ~55 C, and this repeated. No thermald config (`/etc/thermald/thermal-conf.xml`) is installed.
+- **Fix:** `sudo surface-touchfix/thermal-tune.sh` switches tuned to `balanced` and limits power to 15 W sustained / 25 W boost. The aim is steady, slightly lower speed instead of full speed followed by stalls. *Status: added 2026-10-18; confirm with another `perf-log.sh` run after applying.*
+- **Check it:** start the game, run `surface-touchfix/perf-log.sh` in a terminal, play until it would normally slow down, then close the game and look at `perf-log.csv`. Rows with `cpu_avg_mhz` around 200 mean it is still stalling; then try `sudo PL1=12000000 PL2=20000000 surface-touchfix/thermal-tune.sh`.
+- Lowering Minecraft's render distance or the window size in `run.sh` also reduces heat.
 
 ## Diagnosing touch again
 
