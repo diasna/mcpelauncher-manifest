@@ -1,0 +1,3 @@
+#!/bin/bash
+# Xbox Live login webview borrowed from the Flatpak launcher (this build has no Qt WebEngine)
+exec flatpak run --command=mcpelauncher-webview io.mrarm.mcpelauncher "$@"
