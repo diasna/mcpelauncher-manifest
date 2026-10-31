@@ -79,6 +79,21 @@ How to read it:
 
 ## Updating to a newer upstream launcher
 
+**Typical sign:** after the Flatpak launcher and Minecraft update, the touch-fix launch fails. `~/.local/opt/mcpelauncher-touchfix/last-run.log` shows `Failed to load Minecraft: dlopen failed: cannot locate symbol "..."`. The new game needs a newer launcher than this fork is based on.
+
+Example, 2026-10-31: Flatpak v1.8.5 with Minecraft 1.26.60.4 needed `__gnu_strerror_r`, which is in the newer `libc-shim`. v1.8.5 only changed `libc-shim` and `mcpelauncher-core`, so merging the upstream tag was enough:
+
+```
+# use the tag matching `flatpak info io.mrarm.mcpelauncher`
+git fetch https://github.com/minecraft-linux/mcpelauncher-manifest tag v1.8.5
+git merge v1.8.5
+git submodule update --init --recursive
+surface-touchfix/build.sh                # install.sh is only needed on a fresh system
+git push                                 # the branch tracks the diasna fork
+```
+
+`git diff <old tag> <new tag>` shows which submodules changed. If `mcpelauncher-client` or `game-window` changed upstream, rebase the touch commits too:
+
 ```
 git -C mcpelauncher-client fetch https://github.com/minecraft-linux/mcpelauncher-client master
 git -C mcpelauncher-client rebase FETCH_HEAD          # the 4 touch commits move on top
